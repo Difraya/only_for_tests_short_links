@@ -10,26 +10,22 @@ from app.db.base import Base
 from app.main import app
 from app.db.session import get_db
 
-# Загружаем тестовые настройки
 settings = Settings(_env_file=".env.test")
 
-# Создаем тестовую базу данных с уникальным именем
 TEST_DATABASE_URL = f"sqlite+aiosqlite:///./test_{uuid.uuid4()}.db"
-engine = create_async_engine(TEST_DATABASE_URL, echo=False)  # Отключаем echo для уменьшения вывода
+engine = create_async_engine(TEST_DATABASE_URL, echo=False) 
 TestingSessionLocal = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
 
 @pytest_asyncio.fixture(scope="session")
 async def event_loop():
-    """Создаем event loop для тестов"""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
 @pytest_asyncio.fixture(scope="session")
 async def prepare_database():
-    """Подготовка тестовой базы данных"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -39,13 +35,11 @@ async def prepare_database():
 
 @pytest_asyncio.fixture
 async def db_session(prepare_database):
-    """Создаем сессию базы данных для тестов"""
     async with TestingSessionLocal() as session:
         yield session
 
 @pytest_asyncio.fixture
 async def test_client(db_session):
-    """Создаем тестовый клиент"""
     async def override_get_db():
         yield db_session
 
@@ -56,7 +50,6 @@ async def test_client(db_session):
 
 @pytest_asyncio.fixture
 async def test_user(db_session):
-    """Create a test user"""
     from app.models.user import User
     from app.core.hashing import get_password_hash
     
@@ -71,7 +64,6 @@ async def test_user(db_session):
 
 @pytest_asyncio.fixture
 async def test_user2(db_session):
-    """Create another test user"""
     from app.models.user import User
     from app.core.hashing import get_password_hash
     
@@ -85,13 +77,11 @@ async def test_user2(db_session):
 
 @pytest_asyncio.fixture
 async def test_user_token(test_user):
-    """Create a token for test user"""
     from app.core.security import create_access_token
     return create_access_token(data={"sub": test_user["email"]})
 
 @pytest_asyncio.fixture
 async def test_link_factory(db_session):
-    """Factory for creating test links"""
     from app.models.link import Link
     from datetime import datetime, timezone, timedelta
     
