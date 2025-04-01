@@ -4,11 +4,9 @@ import string
 import statistics
 from locust import HttpUser, task, between, events
 
-# Глобальные переменные для хранения метрик
 response_times_with_cache = []
 response_times_without_cache = []
 
-# Функция для генерации случайной строки заданной длины
 def generate_random_string(length=10):
     letters = string.ascii_lowercase + string.digits
     return ''.join(random.choice(letters) for _ in range(length))
@@ -16,7 +14,6 @@ def generate_random_string(length=10):
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
     print("Начало теста кэширования...")
-    # Сбрасываем метрики при запуске теста
     global response_times_with_cache, response_times_without_cache
     response_times_with_cache = []
     response_times_without_cache = []
@@ -45,21 +42,13 @@ def on_test_stop(environment, **kwargs):
     print("-------------------------------")
 
 class CacheTestUser(HttpUser):
-    """
-    Класс для тестирования эффективности кэширования
-    Стратегия: создаём ссылку, затем многократно переходим по ней, 
-    чтобы убедиться, что она кэшируется, и измеряем разницу во времени ответа
-    """
-    wait_time = between(0.1, 0.5)  # Короткие паузы для интенсивного тестирования
+    wait_time = between(0.1, 0.5)
     
     def on_start(self):
-        """Метод вызывается при запуске симуляции"""
-        # Регистрация пользователя
         username = f"cachetest_{generate_random_string(8)}"
         email = f"{username}@example.com"
         password = "Password123!"
         
-        # Регистрируем пользователя
         self.client.post(
             "/api/v1/auth/register",
             json={
@@ -70,7 +59,6 @@ class CacheTestUser(HttpUser):
             name="Register User (Cache Test)"
         )
         
-        # Логинимся
         login_response = self.client.post(
             "/api/v1/auth/jwt/login",
             data={
@@ -83,19 +71,14 @@ class CacheTestUser(HttpUser):
         self.token = login_response.json()["access_token"]
         self.auth_headers = {"Authorization": f"Bearer {self.token}"}
         
-        # Создаем тестовые ссылки для кэширования
         self.create_test_links()
     
     def create_test_links(self):
-        """Создаем несколько тестовых ссылок для тестирования кэширования"""
         self.test_links = []
         
-        # Создаем 5 ссылок для тестирования
         for i in range(5):
-            # Используем одинаковый URL-паттерн для легкой идентификации
             original_url = f"https://www.example.com/cache-test/{i}"
             
-            # Создаем ссылку
             response = self.client.post(
                 "/api/v1/links/shorten",
                 json={"original_url": original_url},
@@ -117,12 +100,9 @@ class CacheTestUser(HttpUser):
         if not hasattr(self, "test_links") or not self.test_links:
             return
         
-        # Выбираем случайную ссылку из созданных для теста
         short_code = random.choice(self.test_links)
         
-        # Совершаем несколько последовательных запросов к одной и той же ссылке
         for i in range(10):
-            # Делаем запрос и замеряем время
             start_time = time.time()
             response = self.client.get(
                 f"/{short_code}",
@@ -130,14 +110,12 @@ class CacheTestUser(HttpUser):
                 allow_redirects=False
             )
             end_time = time.time()
-            response_time_ms = (end_time - start_time) * 1000  # в миллисекундах
+            response_time_ms = (end_time - start_time) * 1000 
             
             if response.status_code in [301, 302, 307, 308]:
-                # Первые несколько запросов, вероятно, не кэшированы
                 if i < 3:
                     response_times_without_cache.append(response_time_ms)
                 else:
-                    # Последующие запросы должны использовать кэш
                     response_times_with_cache.append(response_time_ms)
     
     @task
@@ -148,10 +126,8 @@ class CacheTestUser(HttpUser):
         if not hasattr(self, "test_links") or not self.test_links:
             return
         
-        # Выбираем случайную ссылку из созданных для теста
         short_code = random.choice(self.test_links)
         
-        # Сначала переходим по ссылке несколько раз, чтобы она попала в кэш
         for _ in range(3):
             self.client.get(
                 f"/{short_code}",
@@ -159,7 +135,6 @@ class CacheTestUser(HttpUser):
                 allow_redirects=False
             )
         
-        # Обновляем ссылку
         new_url = f"https://www.example.com/updated-cache-test/{generate_random_string(5)}"
         self.client.put(
             f"/api/v1/links/{short_code}",
@@ -168,7 +143,6 @@ class CacheTestUser(HttpUser):
             name="Update Link (Cache Test)"
         )
         
-        # Теперь делаем запрос после обновления
         start_time = time.time()
         response = self.client.get(
             f"/{short_code}",
@@ -176,12 +150,10 @@ class CacheTestUser(HttpUser):
             allow_redirects=False
         )
         end_time = time.time()
-        response_time_ms = (end_time - start_time) * 1000  # в миллисекундах
+        response_time_ms = (end_time - start_time) * 1000 
         
-        # После обновления первый запрос должен быть без кэша
         response_times_without_cache.append(response_time_ms)
         
-        # Проверяем, что URL изменился (проверка по Location заголовку)
         if response.status_code in [301, 302, 307, 308]:
             location = response.headers.get("Location", "")
             if new_url not in location:
