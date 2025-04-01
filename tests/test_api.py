@@ -9,7 +9,6 @@ from app.core.security import create_access_token
 from app.core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Тесты для аутентификации
 @pytest.mark.parametrize(
     "payload, error_detail_part",
     [
@@ -47,7 +46,6 @@ async def test_register_user(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_login_user(test_client: AsyncClient):
     """Тест входа пользователя и проверка токена через /users/me."""
-    # Сначала регистрируем пользователя
     email = "login_check@example.com"
     password = "testpassword123"
     username = "logincheckuser"
@@ -56,7 +54,6 @@ async def test_login_user(test_client: AsyncClient):
         json={"email": email, "password": password, "username": username}
     )
     
-    # Пытаемся войти
     response_login = await test_client.post(
         "/api/v1/auth/jwt/login",
         data={"username": email, "password": password}
@@ -67,7 +64,6 @@ async def test_login_user(test_client: AsyncClient):
     assert data_login["token_type"] == "bearer"
     token = data_login["access_token"]
     
-    # Проверяем токен, обратившись к /users/me с правильным путем
     response_me = await test_client.get(
         "/api/v1/auth/users/me",
         headers={"Authorization": f"Bearer {token}"}
@@ -81,7 +77,6 @@ async def test_login_user(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_short_link(test_client: AsyncClient):
     """Тест создания короткой ссылки"""
-    # Сначала регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -100,7 +95,6 @@ async def test_create_short_link(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
     
-    # Создаем короткую ссылку
     response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -118,7 +112,6 @@ async def test_create_short_link(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_short_link_no_alias(test_client: AsyncClient):
     """Тест создания короткой ссылки без указания custom_alias."""
-    # Регистрируем и логиним пользователя
     email = "noalias@example.com"
     password = "testpassword123"
     username = "noaliasuser"
@@ -132,7 +125,6 @@ async def test_create_short_link_no_alias(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
 
-    # Создаем ссылку без custom_alias
     original_url = "https://generate-code.com"
     response = await test_client.post(
         "/api/v1/links/shorten",
@@ -142,7 +134,6 @@ async def test_create_short_link_no_alias(test_client: AsyncClient):
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
 
-    # Проверяем, что short_code был сгенерирован (длина 6 по умолчанию)
     assert data["original_url"] == original_url
     assert data["custom_alias"] is None
     assert data["short_code"] is not None
@@ -153,7 +144,6 @@ async def test_create_short_link_no_alias(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_get_link_stats(test_client: AsyncClient):
     """Тест получения статистики по ссылке"""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -172,7 +162,6 @@ async def test_get_link_stats(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
     
-    # Создаем ссылку
     create_response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -183,7 +172,6 @@ async def test_get_link_stats(test_client: AsyncClient):
     )
     short_code = create_response.json()["short_url"].split("/")[-1]
     
-    # Получаем статистику
     response = await test_client.get(
         f"/api/v1/links/{short_code}/stats",
         headers={"Authorization": f"Bearer {token}"}
@@ -198,14 +186,12 @@ async def test_get_link_stats(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_get_link_stats_not_found(test_client: AsyncClient):
     """Тест получения статистики для несуществующей ссылки (404)."""
-    # Регистрируем и логиним пользователя (нужен токен для доступа)
     email = "stats_notfound@example.com"
     password = "testpassword123"
     await test_client.post("/api/v1/auth/register", json={"email": email, "password": password, "username": "statsnotfounduser"})
     login_resp = await test_client.post("/api/v1/auth/jwt/login", data={"username": email, "password": password})
     token = login_resp.json()["access_token"]
 
-    # Запрашиваем статистику для несуществующего кода
     response = await test_client.get(
         "/api/v1/links/nonexistent-stats-link/stats",
         headers={"Authorization": f"Bearer {token}"}
@@ -215,7 +201,6 @@ async def test_get_link_stats_not_found(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_redirect_short_link(test_client: AsyncClient):
     """Тест перенаправления по короткой ссылке"""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -234,7 +219,6 @@ async def test_redirect_short_link(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
     
-    # Создаем ссылку
     create_response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -245,12 +229,10 @@ async def test_redirect_short_link(test_client: AsyncClient):
     )
     short_code = create_response.json()["short_url"].split("/")[-1]
     
-    # Пытаемся перейти по короткой ссылке
     response = await test_client.get(f"/{short_code}", follow_redirects=False)
     assert response.status_code == status.HTTP_307_TEMPORARY_REDIRECT
     assert response.headers["location"] == "https://example.com"
 
-    # Проверяем, что счетчик кликов увеличился
     stats_response = await test_client.get(
         f"/api/v1/links/{short_code}/stats",
         headers={"Authorization": f"Bearer {token}"}
@@ -261,7 +243,6 @@ async def test_redirect_short_link(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_delete_link(test_client: AsyncClient):
     """Тест удаления ссылки"""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -280,7 +261,6 @@ async def test_delete_link(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
     
-    # Создаем ссылку
     create_response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -291,14 +271,12 @@ async def test_delete_link(test_client: AsyncClient):
     )
     short_code = create_response.json()["short_url"].split("/")[-1]
     
-    # Удаляем ссылку
     response = await test_client.delete(
         f"/api/v1/links/{short_code}",
         headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
     
-    # Проверяем, что ссылка действительно удалена
     stats_response = await test_client.get(
         f"/api/v1/links/{short_code}/stats",
         headers={"Authorization": f"Bearer {token}"}
@@ -313,11 +291,9 @@ async def test_register_existing_user(test_client: AsyncClient):
         "password": "password123",
         "username": "existinguser"
     }
-    # Первая регистрация - успешная
     response1 = await test_client.post("/api/v1/auth/register", json=payload)
     assert response1.status_code == status.HTTP_201_CREATED
 
-    # Повторная регистрация с тем же email
     response2 = await test_client.post("/api/v1/auth/register", json=payload)
     assert response2.status_code == status.HTTP_400_BAD_REQUEST
     assert "Email already registered" in response2.json()["detail"]
@@ -337,7 +313,6 @@ async def test_login_invalid_credentials(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_link_invalid_url(test_client: AsyncClient):
     """Тест создания ссылки с невалидным URL"""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -356,7 +331,6 @@ async def test_create_link_invalid_url(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
     
-    # Пытаемся создать ссылку с невалидным URL
     response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -370,7 +344,6 @@ async def test_create_link_invalid_url(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_link_duplicate_alias(test_client: AsyncClient):
     """Тест создания ссылки с уже существующим алиасом"""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -389,7 +362,6 @@ async def test_create_link_duplicate_alias(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
     
-    # Создаем первую ссылку
     await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -399,7 +371,6 @@ async def test_create_link_duplicate_alias(test_client: AsyncClient):
         }
     )
     
-    # Пытаемся создать вторую ссылку с тем же алиасом
     response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -413,7 +384,6 @@ async def test_create_link_duplicate_alias(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_access_unauthorized(test_client: AsyncClient):
     """Тест доступа к защищенным эндпоинтам без авторизации"""
-    # Пытаемся создать ссылку без токена
     response = await test_client.post(
         "/api/v1/links/shorten",
         json={
@@ -432,7 +402,6 @@ async def test_nonexistent_link(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_expired_link(test_client: AsyncClient):
     """Тест обращения к просроченной ссылке"""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -451,7 +420,6 @@ async def test_expired_link(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
     
-    # Создаем ссылку с истекшим сроком действия
     create_response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -463,28 +431,24 @@ async def test_expired_link(test_client: AsyncClient):
     )
     short_code = create_response.json()["short_url"].split("/")[-1]
     
-    # Пытаемся перейти по просроченной ссылке
     response = await test_client.get(f"/{short_code}")
     assert response.status_code == status.HTTP_410_GONE
 
 @pytest.mark.asyncio
 async def test_update_other_user_link(test_client: AsyncClient):
     """Тест запрета обновления чужой ссылки (403 Forbidden)."""
-    # Пользователь 1 (владелец ссылки)
     email1 = "owner@example.com"
     pass1 = "password123"
     await test_client.post("/api/v1/auth/register", json={"email": email1, "password": pass1, "username": "owneruser"})
     login_resp1 = await test_client.post("/api/v1/auth/jwt/login", data={"username": email1, "password": pass1})
     token1 = login_resp1.json()["access_token"]
 
-    # Пользователь 2 (посторонний)
     email2 = "other@example.com"
     pass2 = "password456"
     await test_client.post("/api/v1/auth/register", json={"email": email2, "password": pass2, "username": "otheruser"})
     login_resp2 = await test_client.post("/api/v1/auth/jwt/login", data={"username": email2, "password": pass2})
     token2 = login_resp2.json()["access_token"]
 
-    # Пользователь 1 создает ссылку
     create_resp = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token1}"},
@@ -492,7 +456,6 @@ async def test_update_other_user_link(test_client: AsyncClient):
     )
     short_code = create_resp.json()["short_code"]
 
-    # Пользователь 2 пытается обновить ссылку Пользователя 1
     update_resp = await test_client.put(
         f"/api/v1/links/{short_code}",
         headers={"Authorization": f"Bearer {token2}"},
@@ -503,21 +466,18 @@ async def test_update_other_user_link(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_delete_other_user_link(test_client: AsyncClient):
     """Тест запрета удаления чужой ссылки (403 Forbidden)."""
-    # Пользователь 1 (владелец ссылки)
     email1 = "owner_del@example.com"
     pass1 = "password123"
     await test_client.post("/api/v1/auth/register", json={"email": email1, "password": pass1, "username": "ownerdeluser"})
     login_resp1 = await test_client.post("/api/v1/auth/jwt/login", data={"username": email1, "password": pass1})
     token1 = login_resp1.json()["access_token"]
 
-    # Пользователь 2 (посторонний)
     email2 = "other_del@example.com"
     pass2 = "password456"
     await test_client.post("/api/v1/auth/register", json={"email": email2, "password": pass2, "username": "otherdeluser"})
     login_resp2 = await test_client.post("/api/v1/auth/jwt/login", data={"username": email2, "password": pass2})
     token2 = login_resp2.json()["access_token"]
 
-    # Пользователь 1 создает ссылку
     create_resp = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token1}"},
@@ -525,7 +485,6 @@ async def test_delete_other_user_link(test_client: AsyncClient):
     )
     short_code = create_resp.json()["short_code"]
 
-    # Пользователь 2 пытается удалить ссылку Пользователя 1
     delete_resp = await test_client.delete(
         f"/api/v1/links/{short_code}",
         headers={"Authorization": f"Bearer {token2}"}
@@ -535,14 +494,12 @@ async def test_delete_other_user_link(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_link_success(test_client: AsyncClient):
     """Тест успешного обновления ссылки."""
-    # Регистрируем и логиним пользователя
     email = "update_success@example.com"
     password = "testpassword123"
     await test_client.post("/api/v1/auth/register", json={"email": email, "password": password, "username": "updatesuccessuser"})
     login_resp = await test_client.post("/api/v1/auth/jwt/login", data={"username": email, "password": password})
     token = login_resp.json()["access_token"]
 
-    # Создаем ссылку
     alias = "update-success-link"
     create_resp = await test_client.post(
         "/api/v1/links/shorten",
@@ -552,7 +509,6 @@ async def test_update_link_success(test_client: AsyncClient):
     assert create_resp.status_code == status.HTTP_201_CREATED
     short_code = create_resp.json()["short_code"]
 
-    # Обновляем ссылку
     updated_url = "https://updated-successfully.com"
     new_expiry_dt = datetime.now(timezone.utc) + timedelta(days=30)
     new_expiry_iso = new_expiry_dt.isoformat()
@@ -565,11 +521,9 @@ async def test_update_link_success(test_client: AsyncClient):
     assert update_resp.status_code == status.HTTP_200_OK
     update_data = update_resp.json()
     assert update_data["original_url"] == updated_url
-    # Сверяем дату без микросекунд и информации о таймзоне
     assert update_data["expires_at"].split('.')[0] == new_expiry_dt.isoformat().split('.')[0]
     assert update_data["short_code"] == short_code
 
-    # Проверяем статистику после обновления
     stats_resp = await test_client.get(
         f"/api/v1/links/{short_code}/stats",
         headers={"Authorization": f"Bearer {token}"}
@@ -577,24 +531,21 @@ async def test_update_link_success(test_client: AsyncClient):
     assert stats_resp.status_code == status.HTTP_200_OK
     stats_data = stats_resp.json()
     assert stats_data["original_url"] == updated_url
-    # Сверяем дату без микросекунд и информации о таймзоне
     assert stats_data["expires_at"].split('.')[0] == new_expiry_dt.isoformat().split('.')[0]
-
-# --- Тесты для get_current_user через /users/me ---
 
 @pytest.mark.asyncio
 async def test_read_users_me_no_token(test_client: AsyncClient):
     """Тест доступа к /users/me без токена."""
     response = await test_client.get("/api/v1/auth/users/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Not authenticated" in response.json()["detail"] # Проверяем стандартный ответ FastAPI
+    assert "Not authenticated" in response.json()["detail"]
 
 @pytest.mark.asyncio
 async def test_read_users_me_invalid_token_format(test_client: AsyncClient):
     """Тест доступа к /users/me с некорректным форматом заголовка."""
     response = await test_client.get("/api/v1/auth/users/me", headers={"Authorization": "invalid token"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Not authenticated" in response.json()["detail"] # FastAPI может отдать 401 до вызова get_current_user
+    assert "Not authenticated" in response.json()["detail"]
 
 @pytest.mark.asyncio
 async def test_read_users_me_invalid_token(test_client: AsyncClient):
@@ -607,19 +558,18 @@ async def test_read_users_me_invalid_token(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_read_users_me_expired_token(test_client: AsyncClient):
     """Тест доступа к /users/me с истекшим токеном."""
-    # Создаем токен, который истек 1 секунду назад
     expired_token = create_access_token(
         data={"sub": "test@example.com"},
         expires_delta=timedelta(seconds=-1)
     )
     response = await test_client.get("/api/v1/auth/users/me", headers={"Authorization": f"Bearer {expired_token}"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Could not validate credentials" in response.json()["detail"] # JWTError при истекшем токене
+    assert "Could not validate credentials" in response.json()["detail"]
 
 @pytest.mark.asyncio
 async def test_read_users_me_no_sub(test_client: AsyncClient):
     """Тест доступа к /users/me с токеном без поля 'sub'."""
-    token_no_sub = create_access_token(data={"email": "test@example.com"}) # Нет 'sub'
+    token_no_sub = create_access_token(data={"email": "test@example.com"})
     response = await test_client.get("/api/v1/auth/users/me", headers={"Authorization": f"Bearer {token_no_sub}"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "Could not validate credentials" in response.json()["detail"]
@@ -627,18 +577,14 @@ async def test_read_users_me_no_sub(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_read_users_me_user_not_found(test_client: AsyncClient):
     """Тест доступа к /users/me с токеном пользователя, которого нет в БД."""
-    # Генерируем токен для несуществующего email
     token_ghost_user = create_access_token(data={"sub": "ghost@example.com"})
     response = await test_client.get("/api/v1/auth/users/me", headers={"Authorization": f"Bearer {token_ghost_user}"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "Could not validate credentials" in response.json()["detail"]
 
-# --- Конец тестов для get_current_user --- 
-
 @pytest.mark.asyncio
 async def test_create_short_link_collision(test_client: AsyncClient):
     """Тест создания короткой ссылки с коллизией короткого кода."""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -656,7 +602,6 @@ async def test_create_short_link_collision(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
 
-    # Создаем первую ссылку
     response1 = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -665,7 +610,6 @@ async def test_create_short_link_collision(test_client: AsyncClient):
     assert response1.status_code == status.HTTP_201_CREATED
     short_code1 = response1.json()["short_code"]
 
-    # Создаем вторую ссылку
     response2 = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -674,13 +618,11 @@ async def test_create_short_link_collision(test_client: AsyncClient):
     assert response2.status_code == status.HTTP_201_CREATED
     short_code2 = response2.json()["short_code"]
 
-    # Проверяем, что коды разные
     assert short_code1 != short_code2
 
 @pytest.mark.asyncio
 async def test_update_link_remove_trailing_slash(test_client: AsyncClient):
     """Тест обновления ссылки с удалением завершающего слэша."""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -698,7 +640,6 @@ async def test_update_link_remove_trailing_slash(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
 
-    # Создаем ссылку
     create_response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -709,7 +650,6 @@ async def test_update_link_remove_trailing_slash(test_client: AsyncClient):
     )
     assert create_response.status_code == status.HTTP_201_CREATED
 
-    # Обновляем ссылку с URL, содержащим завершающий слэш
     update_response = await test_client.put(
         "/api/v1/links/slash-test",
         headers={"Authorization": f"Bearer {token}"},
@@ -723,7 +663,6 @@ async def test_update_link_remove_trailing_slash(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_link_inconsistency(test_client: AsyncClient):
     """Тест на несоответствие ссылки при редиректе."""
-    # Регистрируем и логиним пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -741,7 +680,6 @@ async def test_link_inconsistency(test_client: AsyncClient):
     )
     token = login_response.json()["access_token"]
 
-    # Создаем ссылку
     create_response = await test_client.post(
         "/api/v1/links/shorten",
         headers={"Authorization": f"Bearer {token}"},
@@ -752,7 +690,6 @@ async def test_link_inconsistency(test_client: AsyncClient):
     )
     assert create_response.status_code == status.HTTP_201_CREATED
 
-    # Пытаемся получить статистику для несуществующей ссылки
     stats_response = await test_client.get(
         "/api/v1/links/non-existent/stats",
         headers={"Authorization": f"Bearer {token}"}
@@ -762,7 +699,6 @@ async def test_link_inconsistency(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_login_invalid_form_data(test_client: AsyncClient):
     """Тест аутентификации с неверным форматом данных."""
-    # Регистрируем пользователя
     await test_client.post(
         "/api/v1/auth/register",
         json={
@@ -772,10 +708,9 @@ async def test_login_invalid_form_data(test_client: AsyncClient):
         }
     )
 
-    # Пытаемся войти с неверным форматом данных
     response = await test_client.post(
         "/api/v1/auth/jwt/login",
-        json={  # Используем JSON вместо form-data
+        json={ 
             "username": "form@example.com",
             "password": "testpassword123"
         }
@@ -784,12 +719,9 @@ async def test_login_invalid_form_data(test_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_register_user_db_error(test_client, monkeypatch):
-    """Test registration when DB save fails"""
-    # Mock get_by_email to return None, as if the user doesn't exist
     async def mock_get_by_email(*args, **kwargs):
         return None
     
-    # Mock save to raise an exception when attempted
     async def mock_save(*args, **kwargs):
         raise Exception("DB Error")
     
@@ -809,7 +741,6 @@ async def test_register_user_db_error(test_client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_login_invalid_password(test_client, test_user):
-    """Test login with invalid password"""
     response = await test_client.post(
         "/api/v1/auth/jwt/login",
         data={
@@ -822,7 +753,6 @@ async def test_login_invalid_password(test_client, test_user):
 
 @pytest.mark.asyncio
 async def test_login_nonexistent_user(test_client):
-    """Test login with non-existent user"""
     response = await test_client.post(
         "/api/v1/auth/jwt/login",
         data={
@@ -835,8 +765,6 @@ async def test_login_nonexistent_user(test_client):
 
 @pytest.mark.asyncio
 async def test_redirect_expired_link(test_client, test_user, test_link_factory, db_session):
-    """Test redirect to expired link"""
-    # Create an expired link
     expired_link = await test_link_factory(
         user_id=test_user["id"],
         expires_at=datetime.now(timezone.utc) - timedelta(days=1)
@@ -849,35 +777,28 @@ async def test_redirect_expired_link(test_client, test_user, test_link_factory, 
 
 @pytest.mark.asyncio
 async def test_redirect_link_inconsistency(test_client, test_user, monkeypatch):
-    """Test redirect when link exists in short_code but not in full query"""
-    # Create a mock Link class
     class MockLink:
-        id = 99999  # Несуществующий ID
+        id = 99999 
         short_code = "test-inconsistency"
     
-    # Mock Link.get_by_short_code to return our mock
     async def mock_get_by_short_code(*args, **kwargs):
         return MockLink()
     
-    # Mock AsyncSession.execute to return None for the Link query
     async def mock_execute(*args, **kwargs):
         class MockResult:
             def scalar_one_or_none(self):
                 return None
         return MockResult()
     
-    # Apply the mocks
     monkeypatch.setattr("app.models.link.Link.get_by_short_code", mock_get_by_short_code)
     monkeypatch.setattr("sqlalchemy.ext.asyncio.AsyncSession.execute", mock_execute)
     
-    # Test the endpoint
     response = await test_client.get("/test-inconsistency")
     assert response.status_code == 404
     assert response.json()["detail"] == "Link inconsistency"
 
 @pytest.mark.asyncio
 async def test_update_link_not_found(test_client, test_user_token):
-    """Test updating non-existent link"""
     response = await test_client.put(
         "/api/v1/links/nonexistent",
         headers={"Authorization": f"Bearer {test_user_token}"},
@@ -888,8 +809,6 @@ async def test_update_link_not_found(test_client, test_user_token):
 
 @pytest.mark.asyncio
 async def test_update_link_unauthorized(test_client, test_user_token, test_link_factory, test_user2, db_session):
-    """Test updating link owned by another user"""
-    # Create a link owned by test_user2
     link = await test_link_factory(user_id=test_user2["id"])
     await db_session.commit()
     
@@ -903,7 +822,6 @@ async def test_update_link_unauthorized(test_client, test_user_token, test_link_
 
 @pytest.mark.asyncio
 async def test_delete_link_not_found(test_client, test_user_token):
-    """Test deleting non-existent link"""
     response = await test_client.delete(
         "/api/v1/links/nonexistent",
         headers={"Authorization": f"Bearer {test_user_token}"}
@@ -913,8 +831,6 @@ async def test_delete_link_not_found(test_client, test_user_token):
 
 @pytest.mark.asyncio
 async def test_delete_link_unauthorized(test_client, test_user_token, test_link_factory, test_user2, db_session):
-    """Test deleting link owned by another user"""
-    # Create a link owned by test_user2
     link = await test_link_factory(user_id=test_user2["id"])
     await db_session.commit()
     
