@@ -5,26 +5,20 @@ import json
 import datetime
 from pathlib import Path
 
-# Константы
 LOCUST_BIN = r".\.venv\Scripts\locust"
 API_HOST = "http://localhost:8000"
-USER_COUNT = 20  # Количество пользователей
-SPAWN_RATE = 5   # Скорость создания пользователей (в секунду)
-TEST_DURATION = "2m"  # Продолжительность теста
+USER_COUNT = 20 
+SPAWN_RATE = 5  
+TEST_DURATION = "2m" 
 
-# Создаем директорию для отчетов
 REPORT_DIR = Path("locust_tests/reports")
 REPORT_DIR.mkdir(exist_ok=True)
 
 def run_general_load_test():
-    """
-    Запускает общий нагрузочный тест всего API
-    """
     print("\n===== Запуск общего нагрузочного теста =====")
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     csv_report_prefix = f"locust_tests/reports/general_test_{timestamp}"
     
-    # Формируем команду для запуска Locust в headless режиме
     cmd = [
         LOCUST_BIN,
         "--headless",
@@ -37,19 +31,15 @@ def run_general_load_test():
         "--html", f"{csv_report_prefix}.html"
     ]
     
-    # Запускаем тест
     print(f"Команда: {' '.join(cmd)}")
     try:
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
-        # Выводим вывод в реальном времени
         for line in process.stdout:
             print(line, end="")
         
-        # Ждем завершения процесса
         process.wait()
         
-        # Если процесс завершился с ошибкой, выводим stderr
         if process.returncode != 0:
             print("Ошибка при выполнении нагрузочного теста:")
             for line in process.stderr:
@@ -63,39 +53,31 @@ def run_general_load_test():
         return None
 
 def run_cache_test():
-    """
-    Запускает тест для оценки эффективности кэширования
-    """
     print("\n===== Запуск теста кэширования =====")
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     csv_report_prefix = f"locust_tests/reports/cache_test_{timestamp}"
     
-    # Формируем команду для запуска Locust в headless режиме
     cmd = [
         LOCUST_BIN,
         "--headless",
         "-f", "locust_tests/cache_test.py",
         "--host", API_HOST,
-        "--users", "5",  # Меньше пользователей для теста кэша
+        "--users", "5",  
         "--spawn-rate", "1",
         "--run-time", "60s",
         "--csv", csv_report_prefix,
         "--html", f"{csv_report_prefix}.html"
     ]
     
-    # Запускаем тест
     print(f"Команда: {' '.join(cmd)}")
     try:
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
-        # Выводим вывод в реальном времени
         for line in process.stdout:
             print(line, end="")
         
-        # Ждем завершения процесса
         process.wait()
         
-        # Если процесс завершился с ошибкой, выводим stderr
         if process.returncode != 0:
             print("Ошибка при выполнении теста кэширования:")
             for line in process.stderr:
@@ -109,9 +91,6 @@ def run_cache_test():
         return None
 
 def generate_summary_report(general_report_path, cache_report_path):
-    """
-    Создаёт итоговый отчёт по результатам всех тестов
-    """
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     summary_report_path = f"locust_tests/reports/summary_report_{timestamp.replace(':', '-').replace(' ', '_')}.md"
     
@@ -119,14 +98,12 @@ def generate_summary_report(general_report_path, cache_report_path):
         f.write(f"# Отчет о нагрузочном тестировании API\n\n")
         f.write(f"Дата и время проведения: {timestamp}\n\n")
         
-        # Добавляем информацию о настройках тестирования
         f.write("## Параметры тестирования\n\n")
         f.write(f"- Хост API: {API_HOST}\n")
         f.write(f"- Количество пользователей: {USER_COUNT}\n")
         f.write(f"- Скорость создания пользователей: {SPAWN_RATE} пользователей/сек\n")
         f.write(f"- Продолжительность основного теста: {TEST_DURATION}\n\n")
         
-        # Информация о проведенных тестах
         f.write("## Проведенные тесты\n\n")
         
         if general_report_path:
@@ -137,7 +114,6 @@ def generate_summary_report(general_report_path, cache_report_path):
         
         f.write("\n## Результаты тестирования\n\n")
         
-        # Анализ CSV-файлов для получения детальной информации
         if general_report_path:
             stats_csv = f"{general_report_path.rsplit('.', 1)[0]}_stats.csv"
             if os.path.exists(stats_csv):
@@ -164,7 +140,6 @@ def generate_summary_report(general_report_path, cache_report_path):
                 except Exception as e:
                     f.write(f"Ошибка при анализе CSV-файла: {e}\n\n")
         
-        # Добавляем выводы и рекомендации
         f.write("## Выводы и рекомендации\n\n")
         f.write("### Эффективность кэширования\n\n")
         f.write("При повторных запросах к одной и той же короткой ссылке наблюдается значительное улучшение времени ответа благодаря кэшированию. "
@@ -183,18 +158,12 @@ def generate_summary_report(general_report_path, cache_report_path):
     return summary_report_path
 
 def main():
-    """
-    Основная функция для запуска всех тестов
-    """
     print("Запуск нагрузочного тестирования API сокращения ссылок...")
     
-    # Запускаем общий нагрузочный тест
     general_report_path = run_general_load_test()
     
-    # Запускаем тест кэширования
     cache_report_path = run_cache_test()
     
-    # Создаем итоговый отчет
     summary_report = generate_summary_report(general_report_path, cache_report_path)
     
     print("\n===== Тестирование завершено =====")
