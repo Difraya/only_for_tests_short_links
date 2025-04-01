@@ -121,10 +121,10 @@ username=user@example.com&password=strongpassword
 
 ### Через Docker Compose (рекомендуется)
 
-1. Склонировать репозиторий:
+1. Клонировать репозиторий:
 ```bash
-git clone https://github.com/yourusername/short_links_api.git
-cd short_links_api
+git clone https://github.com/Difraya/only_for_tests_short_links.git
+cd only_for_tests_short_links
 ```
 
 2. Создать и заполнить файл `.env` (пример в `.env.example`):
@@ -175,60 +175,60 @@ uvicorn app.main:app --reload
 
 ## Тестирование
 
-### Unit Tests and Integration Tests
+### Модульные и интеграционные тесты
 
-Run tests and generate coverage report:
+Запуск тестов и создание отчета о покрытии:
 
 ```bash
-# Run all tests
+# Запуск всех тестов
 python -m pytest 
 
-# Run tests with coverage report
+# Запуск тестов с отчетом о покрытии
 python -m pytest --cov=app --cov-report=html
 ```
 
-Current test coverage: ![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)
+Текущее покрытие кода тестами: ![Покрытие](https://img.shields.io/badge/coverage-92%25-brightgreen)
 
-### Load Testing
+### Нагрузочное тестирование
 
-Load testing is implemented using [Locust](https://locust.io/), a user-friendly, scriptable and scalable performance testing tool.
+Нагрузочное тестирование реализовано с использованием [Locust](https://locust.io/) - удобного, настраиваемого и масштабируемого инструмента для тестирования производительности.
 
-#### Running Load Tests
+#### Запуск нагрузочных тестов
 
-1. Make sure the API server is running:
+1. Убедитесь, что API-сервер запущен:
    ```bash
    python -m app.main
    ```
 
-2. Run load tests with web interface:
+2. Запустите нагрузочные тесты с веб-интерфейсом:
    ```bash
    python locust_tests/run_web_ui.py
    ```
-   This will open a web interface at http://localhost:8089 where you can configure and run tests.
+   Это откроет веб-интерфейс по адресу http://localhost:8089, где вы сможете настроить и запустить тесты.
 
-3. Run automated tests with report generation:
+3. Запустите автоматические тесты с генерацией отчета:
    ```bash
    python locust_tests/run_load_tests.py
    ```
-   This will run predefined tests and generate comprehensive reports in the `locust_tests/reports/` directory.
+   Это запустит предопределенные тесты и сгенерирует подробные отчеты в директории `locust_tests/reports/`.
 
-#### Load Testing Features
+#### Возможности нагрузочного тестирования
 
-- **General API Testing:** Simulates users registering, creating links, accessing them, and managing links
-- **Cache Efficiency Testing:** Measures performance improvements from Redis caching
-- **Cache Invalidation Testing:** Validates that cache is properly invalidated when links are updated
-- **Comprehensive Reporting:** Generates detailed HTML and CSV reports with performance metrics
+- **Общее тестирование API:** Имитирует пользователей, регистрирующихся, создающих ссылки, переходящих по ним и управляющих ссылками
+- **Тестирование эффективности кэширования:** Измеряет улучшение производительности благодаря кэшированию Redis
+- **Тестирование инвалидации кэша:** Проверяет, что кэш правильно сбрасывается при обновлении ссылок
+- **Комплексная отчетность:** Генерирует подробные HTML и CSV отчеты с метриками производительности
 
-#### Performance Results
+#### Результаты по производительности
 
-Based on load testing with 20 concurrent users over 2 minutes:
+По результатам нагрузочного тестирования с 20 одновременными пользователями в течение 2 минут:
 
-- **Redirect Performance:** 45ms median response time, capable of handling 26.7 redirects per second
-- **API Operations:** Stable performance for link creation, updates, and statistics retrieval
-- **Caching Efficiency:** 87.4% improvement in response time for cached redirects (95ms → 12ms)
-- **Overall Stability:** 0.8% failure rate under load
+- **Производительность редиректов:** 45мс медианное время отклика, способность обрабатывать 26.7 редиректов в секунду
+- **Операции API:** Стабильная производительность для создания ссылок, обновления и получения статистики
+- **Эффективность кэширования:** 87.4% улучшение времени отклика для кэшированных редиректов (95мс → 12мс)
+- **Общая стабильность:** 0.8% показатель отказов при нагрузке
 
-For detailed load testing results, see the HTML report in `locust_tests/reports/load_test_report.html`.
+Для детальных результатов нагрузочного тестирования смотрите HTML-отчет в `locust_tests/reports/load_test_report.html`.
 
 ## Структура БД 
 
