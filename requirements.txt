@@ -1,0 +1,27 @@
+fastapi==0.109.2
+psycopg2-binary
+python-dotenv
+sqlalchemy==2.0.27
+fastapi-users[sqlalchemy]
+fastapi[all]
+uvicorn==0.27.1
+asyncpg==0.29.0
+fastapi-cache2[redis]
+redis==5.0.1
+gunicorn
+pydantic==2.6.1
+starlette
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+email-validator==2.1.0.post1
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.5
+httpx==0.26.0
+pytest-mock
+coverage
+pytest-cov==4.1.0
+locust==2.17.0
+aiosqlite
+pandas

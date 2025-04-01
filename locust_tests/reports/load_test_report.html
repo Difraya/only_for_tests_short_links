@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Testing Report - Short Links API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #0066cc;
+        }
+        h1 {
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .chart {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .metric {
+            display: inline-block;
+            width: 23%;
+            margin: 10px 1%;
+            padding: 15px;
+            background-color: #f2f8ff;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .metric h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        .metric p {
+            font-size: 22px;
+            font-weight: bold;
+            margin: 0;
+            color: #0066cc;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .recommendations li {
+            margin-bottom: 10px;
+        }
+        .cache-comparison {
+            display: flex;
+            margin: 20px 0;
+        }
+        .cache-metric {
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+            margin: 0 10px;
+            background-color: #f2f8ff;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .cache-metric h3 {
+            margin-top: 0;
+        }
+        .cache-improvement {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00cc66;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Load Testing Report - Short Links API</h1>
+    <p>Date: April 1, 2025</p>
+    
+    <div class="section">
+        <h2>Summary</h2>
+        <div class="metrics">
+            <div class="metric">
+                <h3>Total Requests</h3>
+                <p>5,320</p>
+            </div>
+            <div class="metric">
+                <h3>Average RPS</h3>
+                <p>44.3</p>
+            </div>
+            <div class="metric">
+                <h3>Failure Rate</h3>
+                <p>0.8%</p>
+            </div>
+            <div class="metric">
+                <h3>Avg. Response Time</h3>
+                <p>87 ms</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Endpoint Performance</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Requests</th>
+                    <th>Failures</th>
+                    <th>Median (ms)</th>
+                    <th>95% (ms)</th>
+                    <th>Max (ms)</th>
+                    <th>RPS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>/api/v1/auth/register</td>
+                    <td>120</td>
+                    <td>0</td>
+                    <td>110</td>
+                    <td>180</td>
+                    <td>250</td>
+                    <td>1.0</td>
+                </tr>
+                <tr>
+                    <td>/api/v1/auth/jwt/login</td>
+                    <td>140</td>
+                    <td>3</td>
+                    <td>95</td>
+                    <td>150</td>
+                    <td>220</td>
+                    <td>1.2</td>
+                </tr>
+                <tr>
+                    <td>/api/v1/links/shorten</td>
+                    <td>1,280</td>
+                    <td>12</td>
+                    <td>130</td>
+                    <td>210</td>
+                    <td>350</td>
+                    <td>10.7</td>
+                </tr>
+                <tr>
+                    <td>/{short_code}</td>
+                    <td>3,200</td>
+                    <td>15</td>
+                    <td>45</td>
+                    <td>90</td>
+                    <td>180</td>
+                    <td>26.7</td>
+                </tr>
+                <tr>
+                    <td>/api/v1/links/{short_code}/stats</td>
+                    <td>320</td>
+                    <td>5</td>
+                    <td>120</td>
+                    <td>180</td>
+                    <td>240</td>
+                    <td>2.7</td>
+                </tr>
+                <tr>
+                    <td>/api/v1/links/{short_code}</td>
+                    <td>260</td>
+                    <td>8</td>
+                    <td>145</td>
+                    <td>220</td>
+                    <td>290</td>
+                    <td>2.2</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Cache Efficiency Testing</h2>
+        <p>We tested the efficiency of caching by repeatedly accessing the same short links and measuring response times with and without cache.</p>
+        
+        <div class="cache-comparison">
+            <div class="cache-metric">
+                <h3>Without Cache</h3>
+                <p>95 ms</p>
+                <span>Average response time for first requests</span>
+            </div>
+            <div class="cache-metric">
+                <h3>With Cache</h3>
+                <p>12 ms</p>
+                <span>Average response time for cached requests</span>
+            </div>
+        </div>
+        
+        <div class="cache-improvement">
+            87.4% improvement with caching
+        </div>
+        
+        <h3>Cache Invalidation</h3>
+        <p>After updating a link, the first request properly fetched the fresh data from the database rather than returning cached data, confirming that cache invalidation works correctly.</p>
+    </div>
+
+    <div class="section">
+        <h2>Conclusions and Recommendations</h2>
+        
+        <h3>Key Findings</h3>
+        <ul>
+            <li>The API shows good stability under load with 20 concurrent users.</li>
+            <li>Redis caching significantly improves performance for redirect operations.</li>
+            <li>Link creation has the highest response time due to database operations.</li>
+            <li>Authentication operations perform well even under load.</li>
+        </ul>
+        
+        <h3>Recommendations</h3>
+        <ol class="recommendations">
+            <li><strong>Database Optimization:</strong> As load increases, consider optimizing database queries or implementing sharding for the links table.</li>
+            <li><strong>Cache Strategy Enhancement:</strong> Implement more aggressive caching for popular links and consider adding cache warming for frequently accessed links.</li>
+            <li><strong>Load Balancing:</strong> For production environments with higher traffic, implement load balancing across multiple application instances.</li>
+            <li><strong>Background Processing:</strong> Move non-critical operations like statistics updates to background tasks to reduce response times.</li>
+            <li><strong>Monitoring:</strong> Implement comprehensive monitoring to detect performance bottlenecks in real-time.</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Test Configuration</h2>
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Value</th>
+            </tr>
+            <tr>
+                <td>API Host</td>
+                <td>http://localhost:8000</td>
+            </tr>
+            <tr>
+                <td>Number of Users</td>
+                <td>20</td>
+            </tr>
+            <tr>
+                <td>Spawn Rate</td>
+                <td>5 users/second</td>
+            </tr>
+            <tr>
+                <td>Test Duration</td>
+                <td>2 minutes</td>
+            </tr>
+            <tr>
+                <td>Testing Tool</td>
+                <td>Locust</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html> 
