@@ -10,22 +10,18 @@ def test_generate_short_code():
     """Тест генерации короткого кода для Link."""
     code1 = Link.generate_short_code()
 
-    # Проверка типа и длины по умолчанию
     assert isinstance(code1, str)
     assert len(code1) == 6
 
-    # Проверка допустимых символов (буквы и цифры)
     allowed_chars = string.ascii_letters + string.digits
     assert all(char in allowed_chars for char in code1)
 
-    # Проверка генерации с другой длиной
     code2_len = 8
     code2 = Link.generate_short_code(length=code2_len)
     assert isinstance(code2, str)
     assert len(code2) == code2_len
     assert all(char in allowed_chars for char in code2)
 
-    # Проверка, что коды обычно разные (вероятностный тест)
     code3 = Link.generate_short_code()
     assert code1 != code3
 
@@ -50,20 +46,16 @@ async def test_get_user_by_email_not_found(db_session):
     user = await User.get_by_email(db_session, non_existent_email)
     assert user is None
 
-# --- Тесты для модели Link (продолжение) ---
-
 @pytest.mark.asyncio
 async def test_link_save_update(db_session):
     """Тест обновления существующей Link через метод save."""
-    # 1. Создаем пользователя
     test_user = User(
         email="testsave@example.com",
         username="testsaveuser",
         hashed_password="somehash"
     )
-    await test_user.save(db_session) # Сохраняем пользователя, чтобы получить ID
+    await test_user.save(db_session) 
 
-    # 2. Создаем и сохраняем ссылку (INSERT)
     original_url = "https://initial.com"
     link = Link(
         original_url=original_url,
@@ -74,15 +66,11 @@ async def test_link_save_update(db_session):
     assert link.id is not None
     assert str(link.original_url) == original_url
 
-    # 3. Модифицируем ссылку
     updated_url = "https://updated.com"
     link.original_url = updated_url
 
-    # 4. Сохраняем изменения (UPDATE)
     await link.save(db_session)
 
-    # 5. Проверяем, что изменения сохранились в БД
-    # Используем select для явной загрузки из БД
     stmt = select(Link).where(Link.id == link.id)
     result = await db_session.execute(stmt)
     updated_link = result.scalar_one_or_none()
@@ -93,7 +81,6 @@ async def test_link_save_update(db_session):
 @pytest.mark.asyncio
 async def test_link_delete(db_session):
     """Тест удаления Link через метод delete."""
-    # 1. Создаем пользователя
     test_user = User(
         email="testdelete@example.com",
         username="testdeleteuser",
@@ -101,7 +88,6 @@ async def test_link_delete(db_session):
     )
     await test_user.save(db_session)
 
-    # 2. Создаем и сохраняем ссылку
     link = Link(
         original_url="https://todelete.com",
         short_code="delete_test",
@@ -111,16 +97,12 @@ async def test_link_delete(db_session):
     link_id = link.id
     assert link_id is not None
 
-    # 3. Удаляем ссылку
     await link.delete(db_session)
 
-    # 4. Проверяем, что ссылка удалена из БД
     stmt = select(Link).where(Link.id == link_id)
     result = await db_session.execute(stmt)
     deleted_link = result.scalar_one_or_none()
     assert deleted_link is None
-
-# --- Тесты для модели User (продолжение) ---
 
 @pytest.mark.asyncio
 async def test_user_authenticate_success(db_session):
