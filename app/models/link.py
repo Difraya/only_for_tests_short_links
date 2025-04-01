@@ -19,7 +19,6 @@ class Link(Base):
 
     @classmethod
     def generate_short_code(cls, length: int = 6) -> str:
-        """Генерирует случайный короткий код"""
         characters = string.ascii_letters + string.digits
         return ''.join(random.choice(characters) for _ in range(length))
 
@@ -41,7 +40,6 @@ class Link(Base):
 
     async def save(self, db):
         if not self.id:
-            # Генерируем короткий код, если его нет
             if not self.short_code:
                 self.short_code = self.generate_short_code()
             
@@ -58,7 +56,7 @@ class Link(Base):
                 RETURNING id
                 """),
                 {
-                    "original_url": str(self.original_url),  # Преобразуем Url в строку
+                    "original_url": str(self.original_url),
                     "short_code": self.short_code,
                     "custom_alias": self.custom_alias,
                     "user_id": self.user_id,
@@ -80,7 +78,7 @@ class Link(Base):
                 """),
                 {
                     "id": self.id,
-                    "original_url": str(self.original_url), # Преобразуем Url в строку
+                    "original_url": str(self.original_url), 
                     "custom_alias": self.custom_alias,
                     "clicks": self.clicks,
                     "expires_at": self.expires_at
