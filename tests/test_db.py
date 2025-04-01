@@ -31,12 +31,10 @@ async def test_get_db_error_handling():
     try:
         async for session in get_db():
             assert isinstance(session, AsyncSession)
-            # Вызываем ошибку
             raise Exception("Test error")
     except Exception as e:
         assert str(e) == "Test error"
     
-    # Проверяем, что можем создать новую сессию после ошибки
     async for session in get_db():
         assert isinstance(session, AsyncSession)
         result = await session.execute(select(1))
@@ -46,7 +44,6 @@ async def test_get_db_error_handling():
 async def test_session_commit_rollback():
     """Тест транзакций в сессии БД."""
     async for session in get_db():
-        # Создаем тестового пользователя
         test_user = User(
             email="session_test@example.com",
             username="sessionuser",
@@ -55,7 +52,6 @@ async def test_session_commit_rollback():
         session.add(test_user)
         await session.commit()
 
-        # Проверяем, что пользователь создан
         result = await session.execute(
             select(User).where(User.email == "session_test@example.com")
         )
@@ -63,7 +59,6 @@ async def test_session_commit_rollback():
         assert user is not None
         assert user.email == "session_test@example.com"
 
-        # Пробуем создать пользователя с тем же email (должно вызвать ошибку)
         duplicate_user = User(
             email="session_test@example.com",
             username="sessionuser2",
@@ -75,7 +70,6 @@ async def test_session_commit_rollback():
         except:
             await session.rollback()
 
-        # Проверяем, что транзакция откатилась
         result = await session.execute(
             select(User).where(User.username == "sessionuser2")
         )
