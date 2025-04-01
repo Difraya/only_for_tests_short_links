@@ -10,9 +10,7 @@ from app.core.security import get_current_user
 from datetime import datetime, timezone
 from app.core.config import settings
 
-# Основной роутер для эндпоинтов API v1
 router = APIRouter()
-# Отдельный роутер для редиректа, монтируемый в корень
 redirect_router = APIRouter()
 
 @router.post("/shorten", response_model=LinkResponse, status_code=status.HTTP_201_CREATED)
@@ -22,7 +20,6 @@ async def create_short_link(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Проверяем, существует ли алиас, если он предоставлен
     if link.custom_alias:
         existing_link = await Link.get_by_alias(db, link.custom_alias)
         if existing_link:
@@ -31,7 +28,6 @@ async def create_short_link(
                 detail="Custom alias already exists"
             )
 
-    # Создаем объект Link
     db_link = Link(
         original_url=str(link.original_url).rstrip('/'),
         custom_alias=link.custom_alias,
@@ -39,7 +35,6 @@ async def create_short_link(
         expires_at=link.expires_at
     )
     
-    # Генерируем уникальный короткий код, если нет алиаса
     if not db_link.custom_alias:
         while True:
             short_code = Link.generate_short_code()
@@ -50,17 +45,14 @@ async def create_short_link(
     else:
         db_link.short_code = db_link.custom_alias
         
-    await db_link.save(db) # Сохраняем ссылку
+    await db_link.save(db) 
     
-    # Формируем ответ в виде словаря, соответствующего LinkResponse
     response_data = {
-        **db_link.__dict__, # Копируем атрибуты из модели
+        **db_link.__dict__, 
         "short_url": f"{request.base_url}{db_link.short_code}"
     }
-    # Pydantic/FastAPI валидирует этот словарь по LinkResponse
     return response_data
 
-# Переносим эндпоинт редиректа в отдельный роутер
 @redirect_router.get("/{short_code}")
 async def redirect_to_original(
     short_code: str,
@@ -72,28 +64,21 @@ async def redirect_to_original(
         if not link_row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
 
-    # Получаем ID из строки результата (если get_by_... возвращает Row)
-    # Предполагаем, что ID есть в результате. Если нет, get_by_... нужно изменить
-    link_id = link_row.id # Или другой атрибут, содержащий ID
+    link_id = link_row.id 
 
-    # Извлекаем полный объект Link
     result = await db.execute(select(Link).where(Link.id == link_id))
     link = result.scalar_one_or_none()
 
     if not link:
-         # Это не должно произойти, если link_row найден, но на всякий случай
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link inconsistency")
 
 
-    # Проверяем срок действия
     if link.expires_at and link.expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Link expired")
 
-    # Увеличиваем счетчик кликов
     link.clicks = (link.clicks or 0) + 1
-    await link.save(db) # Используем метод save модели
+    await link.save(db) 
 
-    # Убираем слэш при редиректе
     return RedirectResponse(url=str(link.original_url).rstrip('/'))
 
 @router.get("/{short_code}/stats", response_model=LinkResponse)
@@ -103,7 +88,6 @@ async def get_link_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Используем явное получение объекта Link
     query = select(Link).where((Link.short_code == short_code) | (Link.custom_alias == short_code))
     result = await db.execute(query)
     link = result.scalar_one_or_none()
@@ -111,10 +95,9 @@ async def get_link_stats(
     if not link:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
 
-    # Формируем ответ в виде словаря явно, поле за полем
     response_data = {
         "id": link.id,
-        "original_url": str(link.original_url).rstrip('/'), # Убираем слэш
+        "original_url": str(link.original_url).rstrip('/'), 
         "short_code": link.short_code,
         "custom_alias": link.custom_alias,
         "user_id": link.user_id,
@@ -122,7 +105,7 @@ async def get_link_stats(
         "expires_at": link.expires_at,
         "created_at": link.created_at,
         "updated_at": link.updated_at,
-        "short_url": f"{request.base_url}{link.short_code}" # Генерируем полный URL
+        "short_url": f"{request.base_url}{link.short_code}"
     }
     return response_data
 
@@ -134,7 +117,6 @@ async def update_link(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Используем явное получение объекта Link
     query = select(Link).where((Link.short_code == short_code) | (Link.custom_alias == short_code))
     result = await db.execute(query)
     link = result.scalar_one_or_none()
@@ -149,17 +131,16 @@ async def update_link(
     for key, value in link_data.items():
         # Особо обрабатываем original_url, если он есть
         if key == 'original_url' and value is not None:
-             setattr(link, key, str(value).rstrip('/')) # Убираем слэш при обновлении
+             setattr(link, key, str(value).rstrip('/')) 
         else:
             setattr(link, key, value)
 
     await link.save(db)
 
-    # Формируем ответ в виде словаря, убирая слэш
     response_data = {
         **link.__dict__,
         "short_url": f"{request.base_url}{link.short_code}",
-        "original_url": str(link.original_url).rstrip('/') # Убираем слэш здесь
+        "original_url": str(link.original_url).rstrip('/')
     }
     return response_data
 
@@ -169,7 +150,6 @@ async def delete_link(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Используем явное получение объекта Link перед удалением
     query = select(Link).where((Link.short_code == short_code) | (Link.custom_alias == short_code))
     result = await db.execute(query)
     link = result.scalar_one_or_none()
@@ -180,5 +160,5 @@ async def delete_link(
     if link.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this link")
 
-    await link.delete(db) # Вызываем метод delete у объекта модели
-    return # Возвращаем None для статуса 204
+    await link.delete(db) 
+    return 
